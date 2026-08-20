@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Кабинет куратора — Мериты</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<%
+const statusLabels = {
+    pending_print: 'Ждёт печати',
+    printed: 'Напечатан',
+    issued: 'Выдан',
+    used: 'Использован',
+    void: 'Аннулирован'
+};
+%>
+
+<div class="chalkboard" style="align-items:flex-start;padding-top:40px;">
+    <div style="width:100%;">
+        <div class="top-bar">
+            <h1 class="top-bar__title">MERIT</h1>
+            <div class="top-bar__actions">
+                <span class="curator-name"><%= curatorName %></span>
+                <a href="/curator/print-orders" class="btn btn-gold">Напечатать билеты</a>
+                <a href="/curator/logout" class="btn btn-outline">Выйти</a>
+            </div>
+        </div>
+
+        <div class="page-wrap">
+            <div class="paper-card paper-card--wide">
+                <p class="paper-card__title">Классный журнал</p>
+
+                <% if (students.length === 0) { %>
+                    <p class="empty-note">В этом классе пока нет учеников</p>
+                <% } else { %>
+                    <table class="journal-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Ученик</th>
+                                <th>Баланс</th>
+                                <th>Начислить</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% students.forEach(s => { %>
+                                <tr>
+                                    <td class="journal-num"><%= s.journal_number %></td>
+                                    <td class="student-name"><%= s.full_name %></td>
+                                    <td><span class="merit-badge"><%= s.balance %></span></td>
+                                    <td>
+                                        <form class="inline-form" method="POST" action="/curator/add-merits">
+                                            <input type="hidden" name="userId" value="<%= s.id %>">
+                                            <input type="number" name="amount" placeholder="+5" min="1" step="1" required>
+                                            <input type="text" name="reason" placeholder="за что" required>
+                                            <button type="submit" class="btn btn-forest">Начислить</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } %>
+            </div>
+
+            <div class="paper-card">
+                <p class="paper-card__title">Билеты к выдаче</p>
+
+                <% if (pendingOrders.length === 0) { %>
+                    <p class="empty-note">Нет билетов, ожидающих печати</p>
+                <% } else { %>
+                    <% pendingOrders.forEach(order => { %>
+                        <div class="ticket">
+                            <div class="ticket__main">
+                                <span class="ticket__code"><%= order.code %></span>
+                                <span class="ticket__meta"><%= order.reward_title || 'Награда' %></span>
+                                <span class="ticket__meta"><%= order.full_name %> · № <%= order.journal_number %></span>
+
+                                <form method="POST" action="/curator/issue-order" style="margin-top:7px;">
+                                    <input type="hidden" name="orderId" value="<%= order.id %>">
+                                    <button type="submit" class="btn btn-outline">Выдать</button>
+                                </form>
+                            </div>
+
+                            <div class="ticket__stub">
+                                <span class="status status--<%= order.status %>"><%= statusLabels[order.status] || order.status %></span>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

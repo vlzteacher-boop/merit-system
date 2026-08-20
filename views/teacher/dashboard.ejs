@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Кабинет учителя — Мериты</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="chalkboard" style="align-items:flex-start;padding-top:40px;">
+    <div style="width:100%;">
+        <div class="top-bar">
+            <h1 class="top-bar__title">MERIT</h1>
+            <div class="top-bar__actions">
+                <span class="curator-name"><%= teacherName %></span>
+                <a href="/teacher/logout" class="btn btn-outline">Выйти</a>
+            </div>
+        </div>
+
+        <div style="max-width:1180px;margin:0 auto;">
+            <% if (success) { %>
+                <div class="paper-card" style="max-width:none;margin-bottom:16px;padding:16px 22px;">
+                    <strong><%= success %></strong>
+                </div>
+            <% } %>
+
+            <div class="paper-card" style="max-width:none;margin-bottom:16px;">
+                <form method="GET" action="/teacher/dashboard">
+                    <div class="field" style="max-width:320px;margin-bottom:0;">
+                        <label for="classId">Класс</label>
+                        <select id="classId" name="classId" onchange="this.form.submit()" <%= classes.length === 0 ? 'disabled' : '' %>>
+                            <% classes.forEach(c => { %>
+                                <option value="<%= c.id %>" <%= Number(selectedClassId) === Number(c.id) ? 'selected' : '' %>><%= c.name %></option>
+                            <% }) %>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <div class="paper-card paper-card--wide" style="max-width:none;">
+                <p class="paper-card__title">Ученики</p>
+
+                <% if (students.length === 0) { %>
+                    <p class="empty-note">В этом классе пока нет учеников</p>
+                <% } else { %>
+                    <table class="journal-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Ученик</th>
+                                <th>Баланс</th>
+                                <th>Начислить</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% students.forEach(student => { %>
+                                <tr>
+                                    <td class="journal-num"><%= student.journal_number %></td>
+                                    <td class="student-name"><%= student.full_name %></td>
+                                    <td><span class="merit-badge"><%= student.balance %></span></td>
+                                    <td>
+                                        <form class="inline-form" method="POST" action="/teacher/add-merits">
+                                            <input type="hidden" name="userId" value="<%= student.id %>">
+                                            <input type="hidden" name="classId" value="<%= selectedClassId %>">
+                                            <input type="number" name="amount" placeholder="+5" min="1" step="1" required>
+                                            <input type="text" name="reason" placeholder="за что" maxlength="200" required>
+                                            <button type="submit" class="btn btn-forest">Начислить</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
