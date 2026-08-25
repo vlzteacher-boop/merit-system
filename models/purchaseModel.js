@@ -2,11 +2,12 @@ const pool = require('./db');
 const crypto = require('crypto');
 
 class PurchaseError extends Error {
-    constructor(message, status = 400, code = 'PURCHASE_ERROR') {
-        super(message);
+    constructor(code, status = 400, meta = {}) {
+        super(code);
         this.name = 'PurchaseError';
-        this.status = status;
         this.code = code;
+        this.status = status;
+        this.meta = meta;
     }
 }
 
@@ -14,14 +15,25 @@ function generateOrderCode() {
     return 'MR-' + crypto.randomBytes(8).toString('hex').toUpperCase();
 }
 
-async function purchaseReward(studentId, rewardKey) {
+async function purchaseReward(studentId, rewardKey, language = 'ru') {
+    const locale = language === 'en' ? 'en' : 'ru';
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN');
 
         const rewardResult = await client.query(
-            `SELECT id, reward_key, title, description, cost, is_active
+            `SELECT
+                id,
+                reward_key,
+                title,
+                description,
+                title_ru,
+                title_en,
+                description_ru,
+                description_en,
+                cost,
+                is_active
              FROM rewards
              WHERE reward_key = $1
                AND is_active = true
@@ -32,15 +44,17 @@ async function purchaseReward(studentId, rewardKey) {
 
         if (!rewardResult.rows.length) {
             throw new PurchaseError(
-                'Награда не найдена или отключена',
-                404,
-                'REWARD_NOT_FOUND'
+                'REWARD_NOT_FOUND',
+                404
             );
         }
 
         const reward = rewardResult.rows[0];
+        const localizedTitle =
+            locale === 'en'
+                ? (reward.title_en || reward.title_ru || reward.title)
+                : (reward.title_ru || reward.title || reward.title_en);
 
-        // Не даём двум покупкам одного ученика выполняться одновременно.
         await client.query(
             'SELECT pg_advisory_xact_lock($1::bigint)',
             [studentId]
@@ -63,35 +77,45 @@ async function purchaseReward(studentId, rewardKey) {
             );
         }
 
-        const currentBalance = Number(meritResult.rows[0].balance);
+        const currentBalance =
+            Number(meritResult.rows[0].balance);
 
         if (currentBalance < reward.cost) {
             throw new PurchaseError(
-                `Не хватает ${reward.cost - currentBalance} мерит.`,
+                'INSUFFICIENT_MERITS',
                 400,
-                'INSUFFICIENT_MERITS'
+                {
+                    missing:
+                        Number(reward.cost) -
+                        currentBalance
+                }
             );
         }
 
         const balanceResult = await client.query(
             `UPDATE merits
-             SET balance = balance - $1,
-                 updated_at = NOW()
+             SET
+                balance = balance - $1,
+                updated_at = NOW()
              WHERE user_id = $2
                AND balance >= $1
              RETURNING balance`,
-            [reward.cost, studentId]
+            [
+                reward.cost,
+                studentId
+            ]
         );
 
         if (!balanceResult.rows.length) {
             throw new PurchaseError(
-                'Недостаточно меритов',
+                'INSUFFICIENT_MERITS',
                 400,
-                'INSUFFICIENT_MERITS'
+                { missing: reward.cost }
             );
         }
 
-        const newBalance = Number(balanceResult.rows[0].balance);
+        const newBalance =
+            Number(balanceResult.rows[0].balance);
 
         await client.query(
             `INSERT INTO merit_transactions (
@@ -103,7 +127,9 @@ async function purchaseReward(studentId, rewardKey) {
             [
                 studentId,
                 -reward.cost,
-                `Покупка: ${reward.title}`
+                locale === 'en'
+                    ? `Purchase: ${localizedTitle}`
+                    : `Покупка: ${localizedTitle}`
             ]
         );
 
@@ -115,18 +141,27 @@ async function purchaseReward(studentId, rewardKey) {
                 reward_id,
                 reward_key,
                 reward_title,
+                reward_title_ru,
+                reward_title_en,
                 reward_cost,
+                locale,
                 code,
                 status
              )
-             VALUES ($1, $2, $3, $4, $5, $6, 'pending_print')
+             VALUES (
+                $1, $2, $3, $4, $5,
+                $6, $7, $8, $9, 'pending_print'
+             )
              RETURNING *`,
             [
                 studentId,
                 reward.id,
                 reward.reward_key,
-                reward.title,
+                localizedTitle,
+                reward.title_ru || reward.title,
+                reward.title_en || reward.title_ru || reward.title,
                 reward.cost,
+                locale,
                 code
             ]
         );
@@ -135,7 +170,10 @@ async function purchaseReward(studentId, rewardKey) {
 
         return {
             order: orderResult.rows[0],
-            reward,
+            reward: {
+                ...reward,
+                title: localizedTitle
+            },
             newBalance
         };
 
@@ -143,9 +181,14 @@ async function purchaseReward(studentId, rewardKey) {
         try {
             await client.query('ROLLBACK');
         } catch (rollbackError) {
-            console.error('Purchase rollback error:', rollbackError);
+            console.error(
+                'Purchase rollback error:',
+                rollbackError
+            );
         }
+
         throw error;
+
     } finally {
         client.release();
     }

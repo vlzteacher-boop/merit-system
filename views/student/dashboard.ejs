@@ -1,27 +1,16 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1, maximum-scale=1"
     >
-    <title>Мои мериты</title>
+    <title>MERIT</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
-
-<%
-const statusLabels = {
-    pending_print: 'Ждёт печати',
-    printed: 'Напечатан',
-    issued: 'Выдан',
-    used: 'Использован',
-    void: 'Аннулирован'
-};
-%>
-
 
 <div class="app-shell student-app">
 
@@ -35,7 +24,7 @@ const statusLabels = {
         </a>
 
 
-        <div class="student-header__student">
+        <div class="student-header__right">
 
             <span class="student-header__name">
                 <%= studentName %>
@@ -43,18 +32,40 @@ const statusLabels = {
 
 
             <span class="mini-balance">
-                <span id="topBalance">
+                <strong id="topBalance">
                     <%= balance %>
+                </strong>
+
+                <span>
+                    merit
                 </span>
-                merit
             </span>
+
+
+            <div class="language-switch language-switch--dark">
+
+                <a
+                    href="<%= languageUrl('ru') %>"
+                    class="<%= lang === 'ru' ? 'is-active' : '' %>"
+                >
+                    RU
+                </a>
+
+                <a
+                    href="<%= languageUrl('en') %>"
+                    class="<%= lang === 'en' ? 'is-active' : '' %>"
+                >
+                    EN
+                </a>
+
+            </div>
 
 
             <a
                 href="/student/logout"
                 class="logout-link"
             >
-                Выйти
+                <%= t('common.logout') %>
             </a>
 
         </div>
@@ -66,20 +77,20 @@ const statusLabels = {
 
         <section class="compact-summary">
 
-            <div class="compact-summary__hello">
+            <div>
 
-                <span>
-                    Твой баланс
+                <span class="summary-label">
+                    <%= t('student.balanceLabel') %>
                 </span>
 
-                <strong>
+                <strong class="summary-name">
                     <%= studentName %>
                 </strong>
 
             </div>
 
 
-            <div class="compact-summary__balance">
+            <div class="summary-balance">
 
                 <span id="balanceDisplay">
                     <%= balance %>
@@ -104,13 +115,14 @@ const statusLabels = {
                     </span>
 
                     <h2>
-                        Магазин
+                        <%= t('student.shop') %>
                     </h2>
                 </div>
 
 
                 <p>
-                    <%= rewards.length %> наград
+                    <%= rewards.length %>
+                    <%= t('student.rewardsAvailable') %>
                 </p>
 
             </div>
@@ -118,23 +130,23 @@ const statusLabels = {
 
             <div
                 id="shopMessage"
-                class="shop-message"
+                class="purchase-message"
                 aria-live="polite"
             ></div>
 
 
             <% if (!rewards || rewards.length === 0) { %>
 
-                <div class="order-list">
-                    <div class="empty-state">
-                        <strong>
-                            Пока нет доступных наград
-                        </strong>
+                <div class="empty-panel">
 
-                        <span>
-                            Администратор ещё не активировал магазин.
-                        </span>
-                    </div>
+                    <strong>
+                        <%= t('student.noRewards') %>
+                    </strong>
+
+                    <span>
+                        <%= t('student.noRewardsText') %>
+                    </span>
+
                 </div>
 
             <% } else { %>
@@ -151,7 +163,7 @@ const statusLabels = {
                                     <%= String(index + 1).padStart(2, '0') %>
                                 </span>
 
-                                <span class="reward-category">
+                                <span class="reward-cost-pill">
                                     <%= reward.cost %> merit
                                 </span>
 
@@ -163,6 +175,7 @@ const statusLabels = {
                                 <h3>
                                     <%= reward.title %>
                                 </h3>
+
 
                                 <% if (reward.description) { %>
 
@@ -199,11 +212,20 @@ const statusLabels = {
                                 >
 
                                     <span class="reward-buy__ready">
-                                        Купить
+                                        <%= t('student.buy') %>
                                     </span>
 
                                     <span class="reward-buy__poor">
-                                        Ещё <%= Math.max(0, reward.cost - balance) %>
+                                        <%= t(
+                                            'student.needMore',
+                                            {
+                                                amount:
+                                                    Math.max(
+                                                        0,
+                                                        reward.cost - balance
+                                                    )
+                                            }
+                                        ) %>
                                     </span>
 
                                 </button>
@@ -221,7 +243,7 @@ const statusLabels = {
         </section>
 
 
-        <section class="my-rewards-section">
+        <section class="orders-section">
 
             <div class="section-heading">
 
@@ -231,7 +253,7 @@ const statusLabels = {
                     </span>
 
                     <h2>
-                        Мои покупки
+                        <%= t('student.purchases') %>
                     </h2>
                 </div>
 
@@ -243,19 +265,19 @@ const statusLabels = {
                 class="order-list"
             >
 
-                <% if (orders.length === 0) { %>
+                <% if (!orders || orders.length === 0) { %>
 
                     <div
-                        class="empty-state"
+                        class="empty-panel"
                         id="ordersEmpty"
                     >
 
                         <strong>
-                            Пока пусто
+                            <%= t('student.emptyPurchases') %>
                         </strong>
 
                         <span>
-                            Здесь появятся купленные награды.
+                            <%= t('student.emptyPurchasesText') %>
                         </span>
 
                     </div>
@@ -266,20 +288,20 @@ const statusLabels = {
 
                         <article class="order-card">
 
-                            <div class="order-card__left">
+                            <div class="order-card__main">
 
                                 <span class="order-card__code">
                                     <%= order.code %>
                                 </span>
 
                                 <strong>
-                                    <%= order.reward_title || 'Награда' %>
+                                    <%= order.display_reward_title || order.reward_title || 'MERIT' %>
                                 </strong>
 
                             </div>
 
 
-                            <div class="order-card__right">
+                            <div class="order-card__aside">
 
                                 <% if (order.reward_cost !== null && order.reward_cost !== undefined) { %>
 
@@ -293,7 +315,7 @@ const statusLabels = {
                                 <span
                                     class="status status--<%= order.status %>"
                                 >
-                                    <%= statusLabels[order.status] || order.status %>
+                                    <%= t(`status.${order.status}`) %>
                                 </span>
 
                             </div>
@@ -314,7 +336,6 @@ const statusLabels = {
 
 
 <script>
-
 let currentBalance =
     Number(
         <%- JSON.stringify(balance) %>
@@ -335,116 +356,200 @@ const shopMessage =
     );
 
 
-// ============================================================
-// ОБНОВЛЕНИЕ БАЛАНСА И КНОПОК
-// ============================================================
+const labels = {
+    buy:
+        <%- JSON.stringify(t('student.buy')) %>,
 
-function updateBalanceUI() {
+    needMoreTemplate:
+        <%- JSON.stringify(t('student.needMore', { amount: '__AMOUNT__' })) %>,
 
-    document.getElementById(
-        'balanceDisplay'
-    ).textContent =
-        currentBalance;
+    successTitle:
+        <%- JSON.stringify(t('student.purchaseSuccessTitle')) %>,
 
+    successTemplate:
+        <%- JSON.stringify(t('student.purchaseSuccessText', {
+            title: '__TITLE__',
+            balance: '__BALANCE__'
+        })) %>,
 
-    document.getElementById(
-        'topBalance'
-    ).textContent =
-        currentBalance;
+    failedTitle:
+        <%- JSON.stringify(t('student.purchaseFailedTitle')) %>,
 
+    failed:
+        <%- JSON.stringify(t('student.purchaseFailed')) %>,
 
-    buttons.forEach(button => {
+    unavailableTitle:
+        <%- JSON.stringify(t('student.purchaseUnavailableTitle')) %>,
 
-        const cost =
-            Number(
-                button.dataset.rewardCost
-            );
+    unavailable:
+        <%- JSON.stringify(t('common.unavailable')) %>,
 
-
-        const canBuy =
-            currentBalance >= cost;
-
-
-        button.disabled =
-            !canBuy;
-
-
-        const poorText =
-            button.querySelector(
-                '.reward-buy__poor'
-            );
+    pending:
+        <%- JSON.stringify(t('status.pending_print')) %>
+};
 
 
-        if (poorText) {
+function formatTemplate(
+    template,
+    replacements
+) {
 
-            poorText.textContent =
-                `Ещё ${Math.max(
-                    0,
-                    cost - currentBalance
-                )}`;
+    let result =
+        String(template);
+
+
+    Object.entries(
+        replacements
+    ).forEach(
+        ([key, value]) => {
+
+            result =
+                result.replaceAll(
+                    `__${key}__`,
+                    String(value)
+                );
 
         }
+    );
 
-    });
+
+    return result;
 
 }
 
 
-// ============================================================
-// БЕЗОПАСНАЯ ВСТАВКА HTML
-// ============================================================
+function updateBalanceUI() {
+
+    document
+        .getElementById(
+            'balanceDisplay'
+        )
+        .textContent =
+            currentBalance;
+
+
+    document
+        .getElementById(
+            'topBalance'
+        )
+        .textContent =
+            currentBalance;
+
+
+    buttons.forEach(
+        button => {
+
+            if (
+                button.classList.contains(
+                    'reward-buy--loading'
+                )
+            ) {
+                return;
+            }
+
+
+            const cost =
+                Number(
+                    button.dataset.rewardCost
+                );
+
+
+            const canBuy =
+                currentBalance >= cost;
+
+
+            button.disabled =
+                !canBuy;
+
+
+            const ready =
+                button.querySelector(
+                    '.reward-buy__ready'
+                );
+
+
+            const poor =
+                button.querySelector(
+                    '.reward-buy__poor'
+                );
+
+
+            if (ready) {
+                ready.textContent =
+                    labels.buy;
+            }
+
+
+            if (poor) {
+
+                poor.textContent =
+                    formatTemplate(
+                        labels.needMoreTemplate,
+                        {
+                            AMOUNT:
+                                Math.max(
+                                    0,
+                                    cost - currentBalance
+                                )
+                        }
+                    );
+
+            }
+
+        }
+    );
+
+}
+
 
 function escapeHtml(value) {
 
-    const div =
+    const node =
         document.createElement(
             'div'
         );
 
 
-    div.textContent =
-        String(
-            value ?? ''
-        );
+    node.textContent =
+        String(value ?? '');
 
 
-    return div.innerHTML;
+    return node.innerHTML;
 
 }
 
 
-// ============================================================
-// КРУПНОЕ СООБЩЕНИЕ О ПОКУПКЕ
-// ============================================================
-
-function showShopMessage(type, title, text) {
+function showMessage(
+    type,
+    title,
+    text
+) {
 
     shopMessage.className =
-        `shop-message shop-message--${type}`;
+        `purchase-message purchase-message--${type}`;
 
 
     shopMessage.innerHTML = `
-        <strong class="shop-message__title">
+        <strong>
             ${escapeHtml(title)}
         </strong>
 
-        <span class="shop-message__text">
+        <span>
             ${escapeHtml(text)}
         </span>
     `;
 
 
     shopMessage.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest'
+        behavior:
+            'smooth',
+
+        block:
+            'nearest'
     });
 
 }
 
-
-// ============================================================
-// ДОБАВИТЬ ПОКУПКУ В СПИСОК
-// ============================================================
 
 function addOrderToList(result) {
 
@@ -476,205 +581,181 @@ function addOrderToList(result) {
 
 
     item.innerHTML = `
-        <div class="order-card__left">
+        <div class="order-card__main">
 
             <span class="order-card__code">
-                ${escapeHtml(
-                    result.orderCode
-                )}
+                ${escapeHtml(result.orderCode)}
             </span>
 
             <strong>
-                ${escapeHtml(
-                    result.reward.title
-                )}
+                ${escapeHtml(result.reward.title)}
             </strong>
 
         </div>
 
-        <div class="order-card__right">
+        <div class="order-card__aside">
 
             <span class="order-card__price">
-                ${Number(
-                    result.reward.cost
-                )} merit
+                ${Number(result.reward.cost)} merit
             </span>
 
             <span class="status status--pending_print">
-                Ждёт печати
+                ${escapeHtml(labels.pending)}
             </span>
 
         </div>
     `;
 
 
-    list.prepend(
-        item
-    );
+    list.prepend(item);
 
 }
 
 
-// ============================================================
-// ПОКУПКА
-// ============================================================
+buttons.forEach(
+    button => {
 
-buttons.forEach(button => {
+        button.addEventListener(
+            'click',
+            async () => {
 
-    button.addEventListener(
-        'click',
-        async () => {
-
-            if (button.disabled) {
-                return;
-            }
+                if (button.disabled) {
+                    return;
+                }
 
 
-            const rewardKey =
-                button.dataset.rewardKey;
+                const rewardKey =
+                    button.dataset.rewardKey;
 
 
-            const oldHTML =
-                button.innerHTML;
+                button.disabled =
+                    true;
 
 
-            /*
-             * Текст "Купить" не меняется на "...".
-             * Во время запроса добавляется только spinner.
-             */
-            button.disabled =
-                true;
+                button.classList.add(
+                    'reward-buy--loading'
+                );
 
 
-            button.classList.add(
-                'reward-buy--loading'
-            );
+                shopMessage.className =
+                    'purchase-message';
 
 
-            shopMessage.className =
-                'shop-message';
+                shopMessage.innerHTML =
+                    '';
 
 
-            shopMessage.innerHTML =
-                '';
+                try {
+
+                    const response =
+                        await fetch(
+                            '/api/buy',
+                            {
+                                method:
+                                    'POST',
+
+                                headers: {
+                                    'Content-Type':
+                                        'application/json'
+                                },
+
+                                body:
+                                    JSON.stringify({
+                                        rewardKey
+                                    })
+                            }
+                        );
 
 
-            try {
-
-                const response =
-                    await fetch(
-                        '/api/buy',
-                        {
-                            method:
-                                'POST',
-
-                            headers: {
-                                'Content-Type':
-                                    'application/json'
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    rewardKey
-                                })
-                        }
-                    );
+                    const result =
+                        await response.json();
 
 
-                const result =
-                    await response.json();
+                    if (!result.success) {
+
+                        button.classList.remove(
+                            'reward-buy--loading'
+                        );
 
 
-                if (!result.success) {
+                        showMessage(
+                            'error',
+                            labels.failedTitle,
+                            result.message ||
+                            labels.failed
+                        );
+
+
+                        updateBalanceUI();
+
+                        return;
+                    }
+
+
+                    currentBalance =
+                        Number(
+                            result.newBalance
+                        );
+
 
                     button.classList.remove(
                         'reward-buy--loading'
                     );
 
 
-                    button.innerHTML =
-                        oldHTML;
-
-
-                    showShopMessage(
-                        'error',
-                        'Покупка не выполнена',
-                        result.message ||
-                        'Не удалось купить награду'
+                    addOrderToList(
+                        result
                     );
 
 
                     updateBalanceUI();
 
-                    return;
-                }
 
+                    showMessage(
+                        'success',
+                        labels.successTitle,
+                        formatTemplate(
+                            labels.successTemplate,
+                            {
+                                TITLE:
+                                    result.reward.title,
 
-                currentBalance =
-                    Number(
-                        result.newBalance
+                                BALANCE:
+                                    currentBalance
+                            }
+                        )
                     );
 
 
-                button.classList.remove(
-                    'reward-buy--loading'
-                );
+                } catch (error) {
+
+                    console.error(error);
 
 
-                button.innerHTML =
-                    oldHTML;
+                    button.classList.remove(
+                        'reward-buy--loading'
+                    );
 
 
-                addOrderToList(
-                    result
-                );
+                    showMessage(
+                        'error',
+                        labels.unavailableTitle,
+                        labels.unavailable
+                    );
 
 
-                updateBalanceUI();
+                    updateBalanceUI();
 
-
-                showShopMessage(
-                    'success',
-                    'Готово — награда куплена',
-                    `${result.reward.title}. Осталось ${currentBalance} merit.`
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    error
-                );
-
-
-                button.classList.remove(
-                    'reward-buy--loading'
-                );
-
-
-                button.innerHTML =
-                    oldHTML;
-
-
-                showShopMessage(
-                    'error',
-                    'Не удалось оформить покупку',
-                    'Сервер недоступен. Попробуй ещё раз.'
-                );
-
-
-                updateBalanceUI();
+                }
 
             }
+        );
 
-        }
-    );
-
-});
+    }
+);
 
 
 updateBalanceUI();
-
 </script>
 
 </body>

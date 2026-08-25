@@ -1,0 +1,2 @@
+Keep your existing local CormorantGaramond-SemiBold.ttf and GolosText-Medium.ttf files in this folder.
+They are required by utils/pdfGenerator.js.

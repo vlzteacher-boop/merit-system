@@ -7,24 +7,27 @@ router.post('/buy', async (req, res) => {
     if (!req.session.studentId) {
         return res.status(401).json({
             success: false,
-            message: 'Не авторизован'
+            message: req.t('purchase.notAuthorized')
         });
     }
 
-    const rewardKey = String(req.body.rewardKey || '').trim();
+    const rewardKey =
+        String(req.body.rewardKey || '').trim();
 
     if (!rewardKey) {
         return res.status(400).json({
             success: false,
-            message: 'Не указана награда'
+            message: req.t('purchase.noReward')
         });
     }
 
     try {
-        const result = await purchaseModel.purchaseReward(
-            req.session.studentId,
-            rewardKey
-        );
+        const result =
+            await purchaseModel.purchaseReward(
+                req.session.studentId,
+                rewardKey,
+                req.language
+            );
 
         return res.json({
             success: true,
@@ -40,18 +43,42 @@ router.post('/buy', async (req, res) => {
 
     } catch (err) {
         if (err instanceof purchaseModel.PurchaseError) {
-            return res.status(err.status).json({
-                success: false,
-                code: err.code,
-                message: err.message
-            });
+            let message =
+                req.t('purchase.generic');
+
+            if (err.code === 'REWARD_NOT_FOUND') {
+                message =
+                    req.t('purchase.rewardMissing');
+            }
+
+            if (err.code === 'INSUFFICIENT_MERITS') {
+                message =
+                    req.t(
+                        'purchase.insufficient',
+                        {
+                            amount:
+                                err.meta.missing ?? 0
+                        }
+                    );
+            }
+
+            return res
+                .status(err.status)
+                .json({
+                    success: false,
+                    code: err.code,
+                    message
+                });
         }
 
-        console.error('Atomic buy error:', err);
+        console.error(
+            'Atomic buy error:',
+            err
+        );
 
         return res.status(500).json({
             success: false,
-            message: 'Ошибка при покупке'
+            message: req.t('purchase.generic')
         });
     }
 });

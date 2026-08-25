@@ -1,98 +1,507 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Кабинет куратора — Мериты</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title><%= t('curator.dashboardTitle') %></title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
+
 <body>
+
 <%
-const statusLabels = {
-    pending_print: 'Ждёт печати',
-    printed: 'Напечатан',
-    issued: 'Выдан',
-    used: 'Использован',
-    void: 'Аннулирован'
-};
+const selectedClass =
+    classes.find(
+        item =>
+            Number(item.id) ===
+            Number(selectedClassId)
+    );
 %>
 
-<div class="chalkboard" style="align-items:flex-start;padding-top:40px;">
-    <div style="width:100%;">
-        <div class="top-bar">
-            <h1 class="top-bar__title">MERIT</h1>
-            <div class="top-bar__actions">
-                <span class="curator-name"><%= curatorName %></span>
-                <a href="/curator/print-orders" class="btn btn-gold">Напечатать билеты</a>
-                <a href="/curator/logout" class="btn btn-outline">Выйти</a>
+
+<div class="staff-shell">
+
+    <header class="staff-header">
+
+        <div>
+            <div class="app-logo">
+                MERIT
             </div>
+
+            <span class="staff-role">
+                <%= t('curator.dashboardTitle') %>
+            </span>
         </div>
 
-        <div class="page-wrap">
-            <div class="paper-card paper-card--wide">
-                <p class="paper-card__title">Классный журнал</p>
 
-                <% if (students.length === 0) { %>
-                    <p class="empty-note">В этом классе пока нет учеников</p>
-                <% } else { %>
-                    <table class="journal-table">
-                        <thead>
-                            <tr>
-                                <th>№</th>
-                                <th>Ученик</th>
-                                <th>Баланс</th>
-                                <th>Начислить</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% students.forEach(s => { %>
-                                <tr>
-                                    <td class="journal-num"><%= s.journal_number %></td>
-                                    <td class="student-name"><%= s.full_name %></td>
-                                    <td><span class="merit-badge"><%= s.balance %></span></td>
-                                    <td>
-                                        <form class="inline-form" method="POST" action="/curator/add-merits">
-                                            <input type="hidden" name="userId" value="<%= s.id %>">
-                                            <input type="number" name="amount" placeholder="+5" min="1" step="1" required>
-                                            <input type="text" name="reason" placeholder="за что" required>
-                                            <button type="submit" class="btn btn-forest">Начислить</button>
-                                        </form>
-                                    </td>
-                                </tr>
+        <div class="staff-header__actions">
+
+            <span class="staff-name">
+                <%= curatorName %>
+            </span>
+
+
+            <div class="language-switch language-switch--dark">
+
+                <a
+                    href="<%= languageUrl('ru') %>"
+                    class="<%= lang === 'ru' ? 'is-active' : '' %>"
+                >
+                    RU
+                </a>
+
+                <a
+                    href="<%= languageUrl('en') %>"
+                    class="<%= lang === 'en' ? 'is-active' : '' %>"
+                >
+                    EN
+                </a>
+
+            </div>
+
+
+            <% if (selectedClassId) { %>
+
+                <a
+                    href="/curator/print-orders?classId=<%= selectedClassId %>"
+                    class="btn btn-accent"
+                >
+                    <%= t('curator.print') %>
+                </a>
+
+            <% } %>
+
+
+            <a
+                href="/curator/logout"
+                class="btn btn-secondary"
+            >
+                <%= t('common.logout') %>
+            </a>
+
+        </div>
+
+    </header>
+
+
+    <main class="staff-main">
+
+        <% if (success) { %>
+
+            <div class="staff-message staff-message--success">
+                <%= success %>
+            </div>
+
+        <% } %>
+
+
+        <section class="staff-toolbar">
+
+            <% if (!classes || classes.length === 0) { %>
+
+                <div class="empty-panel empty-panel--light">
+                    <span>
+                        <%= t('curator.noClasses') %>
+                    </span>
+                </div>
+
+            <% } else { %>
+
+                <form
+                    method="GET"
+                    action="/curator/dashboard"
+                >
+
+                    <div class="field field--compact">
+
+                        <label for="classId">
+                            <%= t('curator.myClass') %>
+                        </label>
+
+                        <select
+                            id="classId"
+                            name="classId"
+                            onchange="this.form.submit()"
+                        >
+
+                            <% classes.forEach(classItem => { %>
+
+                                <option
+                                    value="<%= classItem.id %>"
+                                    <%= Number(selectedClassId) === Number(classItem.id) ? 'selected' : '' %>
+                                >
+                                    <%= classItem.name %>
+                                </option>
+
                             <% }) %>
-                        </tbody>
-                    </table>
-                <% } %>
-            </div>
 
-            <div class="paper-card">
-                <p class="paper-card__title">Билеты к выдаче</p>
+                        </select>
 
-                <% if (pendingOrders.length === 0) { %>
-                    <p class="empty-note">Нет билетов, ожидающих печати</p>
-                <% } else { %>
-                    <% pendingOrders.forEach(order => { %>
-                        <div class="ticket">
-                            <div class="ticket__main">
-                                <span class="ticket__code"><%= order.code %></span>
-                                <span class="ticket__meta"><%= order.reward_title || 'Награда' %></span>
-                                <span class="ticket__meta"><%= order.full_name %> · № <%= order.journal_number %></span>
+                    </div>
 
-                                <form method="POST" action="/curator/issue-order" style="margin-top:7px;">
-                                    <input type="hidden" name="orderId" value="<%= order.id %>">
-                                    <button type="submit" class="btn btn-outline">Выдать</button>
-                                </form>
-                            </div>
+                </form>
 
-                            <div class="ticket__stub">
-                                <span class="status status--<%= order.status %>"><%= statusLabels[order.status] || order.status %></span>
-                            </div>
+
+            <% } %>
+
+        </section>
+
+
+        <div class="staff-grid">
+
+            <section class="staff-card">
+
+                <div class="staff-card__heading staff-card__heading--with-filter">
+
+                    <h1>
+                        <% if (selectedClass) { %>
+                            <%= selectedClass.name %>
+                        <% } else { %>
+                            <%= t('curator.journal') %>
+                        <% } %>
+                    </h1>
+
+
+                    <% if (classes && classes.length > 0) { %>
+
+                        <div class="stats-period-control stats-period-control--heading">
+
+                            <label for="statsPeriod">
+                                <%= t('curator.statsPeriod') %>
+                            </label>
+
+                            <select id="statsPeriod">
+
+                                <option value="q1">
+                                    <%= t('curator.quarterShort', { number: 1 }) %>
+                                </option>
+
+                                <option value="q2">
+                                    <%= t('curator.quarterShort', { number: 2 }) %>
+                                </option>
+
+                                <option value="q3">
+                                    <%= t('curator.quarterShort', { number: 3 }) %>
+                                </option>
+
+                                <option value="q4">
+                                    <%= t('curator.quarterShort', { number: 4 }) %>
+                                </option>
+
+                                <option value="year">
+                                    <%= t('curator.earnedYear') %>
+                                    (<%= academicContext.academicYearLabel %>)
+                                </option>
+
+                                <option value="all">
+                                    <%= t('curator.earnedAllTime') %>
+                                </option>
+
+                            </select>
+
                         </div>
-                    <% }) %>
+
+                    <% } %>
+
+                </div>
+
+
+                <% if (!students || students.length === 0) { %>
+
+                    <div class="empty-panel empty-panel--light">
+                        <span>
+                            <%= t('curator.noStudents') %>
+                        </span>
+                    </div>
+
+                <% } else { %>
+
+                    <div class="table-scroll">
+
+                        <table class="journal-table">
+
+                            <thead>
+                                <tr>
+                                    <th><%= t('common.number') %></th>
+                                    <th><%= t('common.student') %></th>
+                                    <th><%= t('common.balance') %></th>
+
+                                    <th class="stats-column">
+                                        <%= t('curator.earned') %>
+                                    </th>
+
+                                    <th><%= t('curator.add') %></th>
+                                </tr>
+                            </thead>
+
+
+                            <tbody>
+
+                                <% students.forEach(student => { %>
+
+                                    <tr>
+
+                                        <td class="journal-num">
+                                            <%= student.journal_number %>
+                                        </td>
+
+                                        <td class="student-name">
+                                            <%= student.full_name %>
+                                        </td>
+
+                                        <td>
+                                            <span class="merit-badge">
+                                                <%= student.balance %>
+                                            </span>
+                                        </td>
+
+                                        <td
+                                            class="stats-cell"
+                                            data-earned-q1="<%= student.earnedQ1 %>"
+                                            data-earned-q2="<%= student.earnedQ2 %>"
+                                            data-earned-q3="<%= student.earnedQ3 %>"
+                                            data-earned-q4="<%= student.earnedQ4 %>"
+                                            data-earned-year="<%= student.earnedAcademicYear %>"
+                                            data-earned-all="<%= student.earnedAllTime %>"
+                                        >
+                                            <strong class="earned-value">
+                                                <%= student['earnedQ' + academicContext.quarterNumber] %>
+                                            </strong>
+                                        </td>
+
+                                        <td>
+
+                                            <form
+                                                class="inline-form"
+                                                method="POST"
+                                                action="/curator/add-merits"
+                                            >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="userId"
+                                                    value="<%= student.id %>"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="classId"
+                                                    value="<%= selectedClassId %>"
+                                                >
+
+                                                <input
+                                                    type="number"
+                                                    name="amount"
+                                                    placeholder="<%= t('curator.amountPlaceholder') %>"
+                                                    min="1"
+                                                    step="1"
+                                                    required
+                                                >
+
+                                                <input
+                                                    type="text"
+                                                    name="reason"
+                                                    placeholder="<%= t('curator.reasonPlaceholder') %>"
+                                                    maxlength="200"
+                                                    required
+                                                >
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-primary btn-small"
+                                                >
+                                                    <%= t('curator.add') %>
+                                                </button>
+
+                                            </form>
+
+                                        </td>
+
+                                    </tr>
+
+                                <% }) %>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
                 <% } %>
-            </div>
+
+            </section>
+
+
+            <aside class="staff-card staff-card--tickets">
+
+                <div class="staff-card__heading">
+
+                    <h1>
+                        <%= t('curator.tickets') %>
+                    </h1>
+
+                </div>
+
+
+                <% if (!pendingOrders || pendingOrders.length === 0) { %>
+
+                    <div class="empty-panel empty-panel--light">
+                        <span>
+                            <%= t('curator.noTickets') %>
+                        </span>
+                    </div>
+
+                <% } else { %>
+
+                    <div class="ticket-list">
+
+                        <% pendingOrders.forEach(order => { %>
+
+                            <article class="ticket">
+
+                                <div class="ticket__main">
+
+                                    <span class="ticket__code">
+                                        <%= order.code %>
+                                    </span>
+
+                                    <strong>
+                                        <%= order.reward_ticket_text || order.reward_title || 'MERIT' %>
+                                    </strong>
+
+                                    <span class="ticket__meta">
+                                        <%= order.full_name %>
+                                        ·
+                                        <%= order.journal_number %>
+                                    </span>
+
+
+                                    <% if (order.status === 'printed') { %>
+
+                                        <form
+                                            method="POST"
+                                            action="/curator/issue-order"
+                                        >
+
+                                            <input
+                                                type="hidden"
+                                                name="orderId"
+                                                value="<%= order.id %>"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="classId"
+                                                value="<%= selectedClassId %>"
+                                            >
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-secondary btn-small"
+                                            >
+                                                <%= t('curator.issue') %>
+                                            </button>
+
+                                        </form>
+
+                                    <% } %>
+
+                                </div>
+
+
+                                <span
+                                    class="status status--<%= order.status %>"
+                                >
+                                    <%= t(`status.${order.status}`) %>
+                                </span>
+
+                            </article>
+
+                        <% }) %>
+
+                    </div>
+
+                <% } %>
+
+            </aside>
+
         </div>
-    </div>
+
+    </main>
+
 </div>
+
+
+<script>
+(function () {
+    const select =
+        document.getElementById(
+            'statsPeriod'
+        );
+
+    if (!select) {
+        return;
+    }
+
+    select.value =
+        'q<%= academicContext.quarterNumber %>';
+
+    const cells =
+        Array.from(
+            document.querySelectorAll(
+                '.stats-cell[data-earned-q1]'
+            )
+        );
+
+    function updateStatsColumn() {
+
+        const period =
+            select.value;
+
+        cells.forEach(cell => {
+
+            let value;
+
+            if (period === 'year') {
+                value =
+                    cell.dataset.earnedYear;
+            } else if (period === 'all') {
+                value =
+                    cell.dataset.earnedAll;
+            } else {
+                const number =
+                    period.slice(1);
+
+                value =
+                    cell.dataset[
+                        'earnedQ' + number
+                    ];
+            }
+
+            const target =
+                cell.querySelector(
+                    '.earned-value'
+                );
+
+            if (target) {
+                target.textContent =
+                    value || '0';
+            }
+
+        });
+    }
+
+    select.addEventListener(
+        'change',
+        updateStatsColumn
+    );
+
+    updateStatsColumn();
+})();
+</script>
+
 </body>
 </html>

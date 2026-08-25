@@ -6,11 +6,6 @@ const meritModel = require('../models/meritModel');
 const orderModel = require('../models/orderModel');
 const rewardModel = require('../models/rewardModel');
 
-
-// ============================================================
-// СТРАНИЦА ВХОДА
-// ============================================================
-
 router.get('/', async (req, res) => {
     try {
         const classes =
@@ -18,9 +13,7 @@ router.get('/', async (req, res) => {
 
         res.render(
             'student/login',
-            {
-                classes
-            }
+            { classes }
         );
 
     } catch (err) {
@@ -30,15 +23,10 @@ router.get('/', async (req, res) => {
         );
 
         res.status(500).send(
-            'Не удалось загрузить список классов'
+            req.t('common.serverError')
         );
     }
 });
-
-
-// ============================================================
-// АВТОРИЗАЦИЯ
-// ============================================================
 
 router.post('/login', async (req, res) => {
     const {
@@ -57,7 +45,8 @@ router.post('/login', async (req, res) => {
         if (!user) {
             return res.status(400).json({
                 success: false,
-                message: 'Ученик не найден'
+                message:
+                    req.t('student.notFound')
             });
         }
 
@@ -70,7 +59,8 @@ router.post('/login', async (req, res) => {
         if (!valid) {
             return res.status(401).json({
                 success: false,
-                message: 'Неверный PIN-код'
+                message:
+                    req.t('student.wrongPin')
             });
         }
 
@@ -95,23 +85,16 @@ router.post('/login', async (req, res) => {
 
         return res.status(500).json({
             success: false,
-            message: 'Ошибка сервера'
+            message:
+                req.t('common.serverError')
         });
     }
 });
-
-
-// ============================================================
-// DASHBOARD УЧЕНИКА
-// ============================================================
 
 router.get('/dashboard', async (req, res) => {
     if (!req.session.studentId) {
         return res.redirect('/student');
     }
-
-    const studentId =
-        req.session.studentId;
 
     try {
         const [
@@ -120,14 +103,15 @@ router.get('/dashboard', async (req, res) => {
             rewards
         ] = await Promise.all([
             meritModel.getBalance(
-                studentId
+                req.session.studentId
             ),
-
             orderModel.getOrdersByUser(
-                studentId
+                req.session.studentId,
+                req.language
             ),
-
-            rewardModel.getActiveRewards()
+            rewardModel.getActiveRewards(
+                req.language
+            )
         ]);
 
         res.render(
@@ -135,7 +119,6 @@ router.get('/dashboard', async (req, res) => {
             {
                 studentName:
                     req.session.studentName,
-
                 balance,
                 orders,
                 rewards
@@ -149,21 +132,17 @@ router.get('/dashboard', async (req, res) => {
         );
 
         res.status(500).send(
-            'Ошибка'
+            req.t('common.serverError')
         );
     }
 });
 
-
-// ============================================================
-// ВЫХОД
-// ============================================================
-
 router.get('/logout', (req, res) => {
-    req.session.destroy(() => {
-        res.redirect('/student');
-    });
-});
+    delete req.session.studentId;
+    delete req.session.studentName;
+    delete req.session.classId;
 
+    res.redirect('/student');
+});
 
 module.exports = router;
